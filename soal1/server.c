@@ -186,71 +186,78 @@ void write_file(int fd, char fileName[]){
     return;
 }
 
-void deleteTsv(int line){
-    FILE *fptr1, *fptr2;
-    char file1[] ="files.tsv";
-    char file2[] ="file2.txt";
-    char curr;
-    int del = line, line_number = 0;
+int deleteTsv(char filename[]) {
+    FILE *tsv = fopen("files.tsv", "r+");
+    FILE *tmp = fopen("temp.tsv", "w+");
+    char temp[256], line[256];
 
-    fptr1 = fopen(file1,"r");
-    fptr2 = fopen(file2, "w");
-    curr = getc(fptr1);
-    if(curr!=EOF) {
-        line_number =1;
-    }
-    while(1){
-        if(curr == EOF) break;
-        if(del != line_number){
-            putc(curr, fptr2);
-        }else{
-            if(curr =='\n')
-                continue;
+	while(fgets(line, 256, tsv) != 0){
+        // Cek apakah id:password sudah ada.
+        if(sscanf(line, "%255[^\n]", temp) != 1) break;
+        if(strstr(temp, filename) != 0) {
+            int b;
+        } else {
+            fprintf(tmp, "%s\n", temp);
         }
-        curr = getc(fptr1);
-        if(curr =='\n') line_number++;
     }
-    fclose(fptr1);
-    fclose(fptr2);
 
-    fptr1 = fopen(file1,"w");
-    fptr2 = fopen(file2, "r");
-    curr = getc(fptr2);
-    if(curr!=EOF) {
-        line_number =1;
+    while(fgets(line, 256, tsv) != 0){
+        if(sscanf(line, "%255[^\n]", temp) != 1) break;
+        fprintf(tsv, "%s\n", temp);
     }
-    while(1){
-        putc(curr, fptr1);
-        curr = getc(fptr2);
-        if(curr =='\n') line_number++;
-        if(curr == EOF) break;
-    }
-    fclose(fptr1);
-    fclose(fptr2);
-    // remove(file2);
+    remove("files.tsv");
+    rename("temp.tsv", "files.tsv");
+
+    fclose(tmp);
+    fclose(tsv);
+    return 0;
 }
 
-int countLines(char fileName[]){
-    FILE *fileptr;
-    int count_lines = 0;
-    char chr;
+void download_books(int send_clt, int rcv_clt){
+	char books[SIZE];
+	int line = 1;
+	int ret_val9;
+	int status_val;
+	ret_val9 = recv(send_clt, books, SIZE, 0);
 
-    fileptr = fopen(fileName, "r");
-   //extract character from file and store in chr
-    chr = getc(fileptr);
-    while (chr != EOF)
-    {
-        //Count whenever new line is encountered
-        if (chr == '\n')
-        {
-            count_lines = count_lines + 1;
-        }
-        //take next character from file.
-        chr = getc(fileptr);
-    }
-    fclose(fileptr); //close file.
-    printf("There are %d lines in %s  in a file\n", count_lines, fileName);
-    return count_lines;
+	printf("The book that requested : %s\n", books);
+	if(checkPath(books)){
+		status_val = send(rcv_clt,
+					"Begin to download\n", SIZE, 0);
+		char temp[SIZE] = "/home/erki/Documents/modul3/soalShift1/Server/FILES/";
+
+		strcat(temp, books);
+		printf("DEBUG CHECK PATH --- %s\n", temp);
+		sendFile(send_clt, temp);
+	} else {
+		status_val = send(rcv_clt,
+					"File does not exist\n", SIZE, 0);
+	}
+}
+
+void delete_books(int send_clt, int rcv_clt){
+	char books[SIZE];
+	int ret_val1 = recv(send_clt, books, SIZE, 0);
+	int  status_val;
+	char temp[SIZE] = "/home/erki/Documents/modul3/soalShift1/Server/FILES/";
+	char temp2[120] = "/home/erki/Documents/modul3/soalShift1/Server/FILES/old-";
+
+	printf("The book that wants to be deleted : %s\n", books);
+	if(checkPath(books)){
+	    status_val = send(rcv_clt,
+	                "Begin to delete\n", SIZE, 0);
+
+	    strcat(temp, books);
+	    strcat(temp2, books);
+
+	    printf("DEBUG CHECK PATH OLD --- %s\n", temp);
+	    printf("DEBUG CHECK PATH NEW --- %s\n\n", temp2);
+	    // rename(temp, temp2);
+	    deleteTsv(books);
+	}else {
+	    status_val = send(rcv_clt,
+	                "File does not exist\n", SIZE, 0);
+	}
 }
 
 int main () {
@@ -363,37 +370,38 @@ int main () {
                     } 
                     if (ret_val3 > 0) {
                         // commandHandler();
-                        // if(!strcmp(cmd, "register") || !strcmp(cmd, "login"))
-                        //       register_login(all_connections[i], cmd, id, password, &userLoggedIn, 
-                        //                     all_connections[serving] );
+                        if(!strcmp(cmd, "register") || !strcmp(cmd, "login"))
+                              register_login(all_connections[i], cmd, id, password, &userLoggedIn, 
+                                            all_connections[serving] );
 
                         //login and signup
-                        if(!strcmp(cmd, "register")) {
-                            ret_val1 = recv(all_connections[i], id, sizeof(id), 0);
-                            ret_val2 = recv(all_connections[i], password, sizeof(password), 0);
-                            if(checkString(id, password)) {
-                                status_val = send(all_connections[serving],
-                                        "userfound\n", SIZE, 0);
-                            } else {
-                                userLoggedIn = 1;
-                                FILE *app = fopen("akun.txt", "a+");
-                                fprintf(app, "%s:%s\n", id, password);
-                                fclose(app);
-                                status_val = send(all_connections[serving],
-                                        "regloginsuccess\n", SIZE, 0);
-                            }
-                        } else if(!strcmp(cmd, "login")) {
-                            ret_val1 = recv(all_connections[i], id, sizeof(id), 0);
-                            ret_val2 = recv(all_connections[i], password, sizeof(password), 0);
-                            if(!checkString(id, password))
-                                status_val = send(all_connections[serving],
-                                        "wrongpass\n", SIZE, 0);
-							else {
-                                userLoggedIn = 1;
-                                status_val = send(all_connections[serving],
-                                        "regloginsuccess\n", SIZE, 0);
-                            }
-                        }
+                        // if(!strcmp(cmd, "register")) {
+                        //     ret_val1 = recv(all_connections[i], id, sizeof(id), 0);
+                        //     ret_val2 = recv(all_connections[i], password, sizeof(password), 0);
+                        //     if(checkString(id, password)) {
+                        //         status_val = send(all_connections[serving],
+                        //                 "userfound\n", SIZE, 0);
+                        //     } else {
+                        //         userLoggedIn = 1;
+                        //         FILE *app = fopen("akun.txt", "a+");
+                        //         fprintf(app, "%s:%s\n", id, password);
+                        //         fclose(app);
+                        //         status_val = send(all_connections[serving],
+                        //                 "regloginsuccess\n", SIZE, 0);
+                        //     }
+
+                        // } else if(!strcmp(cmd, "login")) {
+                        //     ret_val1 = recv(all_connections[i], id, sizeof(id), 0);
+                        //     ret_val2 = recv(all_connections[i], password, sizeof(password), 0);
+                        //     if(!checkString(id, password))
+                        //         status_val = send(all_connections[serving],
+                        //                 "wrongpass\n", SIZE, 0);
+						// 	else {
+                        //         userLoggedIn = 1;
+                        //         status_val = send(all_connections[serving],
+                        //                 "regloginsuccess\n", SIZE, 0);
+                        //     }
+                        // }
 
                         // other command
                         else {
@@ -438,52 +446,53 @@ int main () {
                                 } 
                                 //download command
                                 else if(!strcmp(cmd, "download")){
-                                    char books[SIZE];
-                                    int line = 1;
-                                    int ret_val9;
-                                    ret_val9 = recv(all_connections[i], books, SIZE, 0);
+									download_books(all_connections[i], all_connections[serving]);
 
-                                    printf("The book that requested : %s\n", books);
-                                    if(checkPath(books)){
-                                        status_val = send(all_connections[serving],
-                                                    "Begin to download\n", SIZE, 0);
-                                        // char temp[SIZE] = "/home/erki/Documents/modul3/soalShift1/Server/FILES/";
+                                    // char books[SIZE];
+									// // char temp[SIZE] = "/home/erki/Documents/modul3/soalShift1/Server/FILES/";
+                                    // int line = 1;
+                                    // int ret_val9;
+                                    // ret_val9 = recv(all_connections[i], books, SIZE, 0);
 
-                                        // int cintakuPadamu = 99;
- 
-                                        // strcat(timo, books);
-                                        // printf("DEBUG CHECK PATH --- %s\n", timo);
-                                        // sendFile(all_connections[i], timo);
-                                    } else {
-                                        status_val = send(all_connections[serving],
-                                                    "File does not exist\n", SIZE, 0);
-                                    }
+                                    // printf("The book that requested : %s\n", books);
+                                    // if(checkPath(books)){
+                                    //     status_val = send(all_connections[serving],
+                                    //                 "Begin to download\n", SIZE, 0);
+
+                                    //     // strcat(temp, books);
+                                    //     // printf("DEBUG CHECK PATH --- %s\n", temp);
+                                    //     // sendFile(all_connections[i], timo);
+                                    // } else {
+                                    //     status_val = send(all_connections[serving],
+                                    //                 "File does not exist\n", SIZE, 0);
+                                    // }
                                 }
                                 //delete command
                                 else if(!strcmp(cmd, "delete")){
-                                //     char books[SIZE];
-                                //     ret_val1 = recv(all_connections[i], books, sizeof(books), 0);
-                                //     int line = 1;;
-                                //     char temp[SIZE] = "/home/erki/Documents/modul3/soalShift1/Server/FILES/";
-                                //     // char temp2[120] = "/home/erki/Documents/modul3/soalShift1/Server/FILES/old-";
+									delete_books(all_connections[i], all_connections[serving]);
+                                    // char books[SIZE];
+                                    // ret_val1 = recv(all_connections[i], books, sizeof(books), 0);
+                                    // int line = 1;;
+                                    // char temp[SIZE] = "/home/erki/Documents/modul3/soalShift1/Server/FILES/";
+                                    // // char temp2[120] = "/home/erki/Documents/modul3/soalShift1/Server/FILES/old-";
 
-                                //     printf("The book that wants to be deleted : %s\n", books);
-                                //     // if(checkPath(books)){
-                                //     //     status_val = send(all_connections[serving],
-                                //     //                 "Begin to delete\n", SIZE, 0);
+                                    // printf("The book that wants to be deleted : %s\n", books);
+                                    // // if(checkPath(books)){
+                                    // //     status_val = send(all_connections[serving],
+                                    // //                 "Begin to delete\n", SIZE, 0);
 
-                                //     //     strcat(temp, books);
-                                //     //     strcat(temp2, books);
+                                    // //     strcat(temp, books);
+                                    // //     strcat(temp2, books);
 
-                                //     //     printf("DEBUG CHECK PATH OLD --- %s\n", temp);
-                                //     //     printf("DEBUG CHECK PATH NEW --- %s\n\n", temp2);
-                                //     //     // countLines(temp);
-                                //     //     // rename(temp, temp2);
-                                //     //     // deleteTsv(line);
-                                //     // }else {
-                                //     //     status_val = send(all_connections[serving],
-                                //     //                 "File does not exist\n", SIZE, 0);
-                                //     // }
+                                    // //     printf("DEBUG CHECK PATH OLD --- %s\n", temp);
+                                    // //     printf("DEBUG CHECK PATH NEW --- %s\n\n", temp2);
+                                    // //     // countLines(temp);
+                                    // //     // rename(temp, temp2);
+                                    // //     // deleteTsv(line);
+                                    // // }else {
+                                    // //     status_val = send(all_connections[serving],
+                                    // //                 "File does not exist\n", SIZE, 0);
+                                    // // }
                                 }
                             } else {
                                 status_val = send(all_connections[serving],
