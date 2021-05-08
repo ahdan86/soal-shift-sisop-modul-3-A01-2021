@@ -140,6 +140,7 @@ void getDir(char filePathDir[], char fileName[]){
         len--;
         index++;
     }
+	fileName[index] = '\0';
 }
 
 void sendFile(int sockfd, char filePath[]){
@@ -302,6 +303,57 @@ void add_books(int send_clt, int rcv_clt, char id[], char password[]){
 	make_log("add", fileName, id, password);
 }
 
+void see_books(int rcv_clt){
+	char *publisher, *tahun, *filePath, 
+			*nameFile, *ekstensi;
+	char  line[512], filePathDir[SIZE], tempName[SIZE];
+	char pub_f[SIZE], tahun_f[SIZE], filePath_f[SIZE], 
+			nameFile_f[SIZE], ekstensi_f[SIZE];
+	const char tab[2] = "\t";
+	int status_val;
+
+	FILE *fp = fopen("files.tsv", "r");
+	status_val = send(rcv_clt, "not-done", SIZE, 0);
+
+	while(fgets(line, 512, fp)){
+		printf("LINE ---- %s\n", line);
+
+		char *endStr;
+		filePath = strtok_r(line, tab, &endStr);
+		strcpy(filePath_f, filePath);
+		publisher = strtok_r(NULL, tab, &endStr);
+		strcpy(pub_f, publisher);
+		tahun = strtok_r(NULL, tab, &endStr);
+		strcpy(tahun_f, tahun);
+
+		sprintf(filePathDir, "%s", filePath);
+		getDir(filePathDir, tempName);
+		strrev(tempName);
+		// printf("TEMP NAME ---- %s\n", tempName);
+
+		nameFile = strtok_r(tempName, ".", &endStr);
+		strcpy(nameFile_f, nameFile);
+		ekstensi = strtok_r(NULL, ".", &endStr);
+		strcpy(ekstensi_f, ekstensi);
+
+		printf("SEEING FILES----\n");
+		printf("Nama: %s\n", nameFile_f);
+		printf("Publisher: %s\n", pub_f);
+		printf("Tahun publishing: %s\n", tahun_f);
+		printf("Esktensi file: %s\n", ekstensi_f);
+		printf("FilePath: %s\n\n", filePath_f);
+
+		status_val = send(rcv_clt, nameFile_f, SIZE, 0);
+		status_val = send(rcv_clt, pub_f, SIZE, 0);
+		status_val = send(rcv_clt, tahun_f, SIZE, 0);
+		status_val = send(rcv_clt, ekstensi_f, SIZE, 0);
+		status_val = send(rcv_clt, filePath_f, SIZE, 0);
+		// status_val = send(rcv_clt, "not-done", SIZE, 0);
+	}
+	fclose(fp);
+	status_val = send(rcv_clt, "sasdf", SIZE, 0);
+}
+
 int main () {
     fd_set read_fd_set;
     struct sockaddr_in new_addr;
@@ -433,6 +485,10 @@ int main () {
                                 //delete command
                                 else if(!strcmp(cmd, "delete")){
 									delete_books(all_connections[i], all_connections[serving], id, password);
+                                }
+								//see command
+                                else if(!strcmp(cmd, "see")){
+									see_books(all_connections[serving]);
                                 }
                             } else {
 								//user not login
