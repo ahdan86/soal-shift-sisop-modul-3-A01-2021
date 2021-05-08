@@ -252,12 +252,38 @@ void delete_books(int send_clt, int rcv_clt){
 
 	    printf("DEBUG CHECK PATH OLD --- %s\n", temp);
 	    printf("DEBUG CHECK PATH NEW --- %s\n\n", temp2);
-	    // rename(temp, temp2);
+	    rename(temp, temp2);
 	    deleteTsv(books);
 	}else {
 	    status_val = send(rcv_clt,
 	                "File does not exist\n", SIZE, 0);
 	}
+}
+
+void add_books(int send_clt, int rcv_clt){
+	char publisher[SIZE], tahun[SIZE], filePath[SIZE];
+	char filePathDir[SIZE], fileName[15];
+	int ret_val1 = recv(send_clt, publisher, SIZE, 0);
+	int ret_val2 = recv(send_clt, tahun, SIZE, 0);
+	int ret_val4 = recv(send_clt, filePath, SIZE, 0);
+	printf("Publisher : %s\n", publisher);
+	printf("Tahun Publikasi: %s\n", tahun);
+	printf("Filepath: %s\n", filePath);
+
+	sprintf(filePathDir, "%s", filePath);
+	getDir(filePathDir, fileName);
+	strrev(fileName);
+	printf("Filepath: %s\n\n", filePath);
+	printf("Filepath Dir: %s\n\n", filePathDir);
+	printf("Filename: %s\n\n", fileName);
+
+	write_file(send_clt, fileName);
+
+	printf("KELUAR DARI UPLOAD ----\n");
+
+	FILE *temp = fopen("files.tsv", "a+");
+	fprintf(temp, "%s\t%s\t%s\n", filePath, publisher, tahun);
+	fclose(temp);
 }
 
 int main () {
@@ -266,7 +292,6 @@ int main () {
     int server_fd, new_fd, i, serving = 1;
     int ret_val, ret_val1, ret_val2, ret_val3, ret_val4, status_val;
     char message[SIZE], id[SIZE], password[SIZE], cmd[SIZE];
-    char publisher[SIZE], tahun[SIZE], filePath[SIZE];
     socklen_t addrlen;
     char buf[DATA_BUFFER];
     int all_connections[MAX_CONNECTIONS];
@@ -369,130 +394,25 @@ int main () {
                             status_val = send(all_connections[serving], "serve",  SIZE, 0);
                     } 
                     if (ret_val3 > 0) {
-                        // commandHandler();
+                        // signing up
                         if(!strcmp(cmd, "register") || !strcmp(cmd, "login"))
                               register_login(all_connections[i], cmd, id, password, &userLoggedIn, 
                                             all_connections[serving] );
-
-                        //login and signup
-                        // if(!strcmp(cmd, "register")) {
-                        //     ret_val1 = recv(all_connections[i], id, sizeof(id), 0);
-                        //     ret_val2 = recv(all_connections[i], password, sizeof(password), 0);
-                        //     if(checkString(id, password)) {
-                        //         status_val = send(all_connections[serving],
-                        //                 "userfound\n", SIZE, 0);
-                        //     } else {
-                        //         userLoggedIn = 1;
-                        //         FILE *app = fopen("akun.txt", "a+");
-                        //         fprintf(app, "%s:%s\n", id, password);
-                        //         fclose(app);
-                        //         status_val = send(all_connections[serving],
-                        //                 "regloginsuccess\n", SIZE, 0);
-                        //     }
-
-                        // } else if(!strcmp(cmd, "login")) {
-                        //     ret_val1 = recv(all_connections[i], id, sizeof(id), 0);
-                        //     ret_val2 = recv(all_connections[i], password, sizeof(password), 0);
-                        //     if(!checkString(id, password))
-                        //         status_val = send(all_connections[serving],
-                        //                 "wrongpass\n", SIZE, 0);
-						// 	else {
-                        //         userLoggedIn = 1;
-                        //         status_val = send(all_connections[serving],
-                        //                 "regloginsuccess\n", SIZE, 0);
-                        //     }
-                        // }
-
                         // other command
                         else {
                             if(userLoggedIn) {
                                 printf("Kamu berhak mengakses command\n\n");
                                 //add command
                                 if(!strcmp(cmd, "add")){
-                                    char filePathDir[SIZE], fileName[15];
-                                    ret_val1 = recv(all_connections[i], publisher, sizeof(publisher), 0);
-                                    ret_val2 = recv(all_connections[i], tahun, sizeof(tahun), 0);
-                                    ret_val4 = recv(all_connections[i], filePath, sizeof(filePath), 0);
-                                    printf("Publisher : %s\n", publisher);
-                                    printf("Tahun Publikasi: %s\n", tahun);
-                                    printf("Filepath: %s\n", filePath);
-
-                                    sprintf(filePathDir, "%s", filePath);
-                                    getDir(filePathDir, fileName);
-                                    strrev(fileName);
-                                    printf("Filepath: %s\n\n", filePath);
-                                    printf("Filepath Dir: %s\n\n", filePathDir);
-                                    printf("Filename: %s\n\n", fileName);
-
-                                    // struct dirent *dp;
-                                    // DIR *dir;
-                                    // if((dir = opendir(filePathDir)) != NULL){
-                                    //     while((dp = readdir(dir)) != NULL){
-                                    //         if(strcmp(dp->d_name, "..") && strcmp(dp->d_n`ame, ".")){
-                                    //             if(!strcmp(dp->d_name, fileName)){
-                                    //                 printf("KETEMU ---\n");
-                                                    write_file(all_connections[i], fileName);
-                                    //                 break;
-                                    //             }
-                                    //         }
-                                    //     }
-                                    // }
-
-                                    printf("KELUAR DARI UPLOAD ----\n");
-
-                                    FILE *temp = fopen("files.tsv", "a+");
-                                    fprintf(temp, "%s\t%s\t%s\n", filePath, publisher, tahun);
-                                    fclose(temp);
+									add_books(all_connections[i], all_connections[serving]);
                                 } 
                                 //download command
                                 else if(!strcmp(cmd, "download")){
 									download_books(all_connections[i], all_connections[serving]);
-
-                                    // char books[SIZE];
-									// // char temp[SIZE] = "/home/erki/Documents/modul3/soalShift1/Server/FILES/";
-                                    // int line = 1;
-                                    // int ret_val9;
-                                    // ret_val9 = recv(all_connections[i], books, SIZE, 0);
-
-                                    // printf("The book that requested : %s\n", books);
-                                    // if(checkPath(books)){
-                                    //     status_val = send(all_connections[serving],
-                                    //                 "Begin to download\n", SIZE, 0);
-
-                                    //     // strcat(temp, books);
-                                    //     // printf("DEBUG CHECK PATH --- %s\n", temp);
-                                    //     // sendFile(all_connections[i], timo);
-                                    // } else {
-                                    //     status_val = send(all_connections[serving],
-                                    //                 "File does not exist\n", SIZE, 0);
-                                    // }
                                 }
                                 //delete command
                                 else if(!strcmp(cmd, "delete")){
 									delete_books(all_connections[i], all_connections[serving]);
-                                    // char books[SIZE];
-                                    // ret_val1 = recv(all_connections[i], books, sizeof(books), 0);
-                                    // int line = 1;;
-                                    // char temp[SIZE] = "/home/erki/Documents/modul3/soalShift1/Server/FILES/";
-                                    // // char temp2[120] = "/home/erki/Documents/modul3/soalShift1/Server/FILES/old-";
-
-                                    // printf("The book that wants to be deleted : %s\n", books);
-                                    // // if(checkPath(books)){
-                                    // //     status_val = send(all_connections[serving],
-                                    // //                 "Begin to delete\n", SIZE, 0);
-
-                                    // //     strcat(temp, books);
-                                    // //     strcat(temp2, books);
-
-                                    // //     printf("DEBUG CHECK PATH OLD --- %s\n", temp);
-                                    // //     printf("DEBUG CHECK PATH NEW --- %s\n\n", temp2);
-                                    // //     // countLines(temp);
-                                    // //     // rename(temp, temp2);
-                                    // //     // deleteTsv(line);
-                                    // // }else {
-                                    // //     status_val = send(all_connections[serving],
-                                    // //                 "File does not exist\n", SIZE, 0);
-                                    // // }
                                 }
                             } else {
                                 status_val = send(all_connections[serving],
