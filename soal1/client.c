@@ -110,8 +110,8 @@ void download_books(int fd){
     ret_val = recv(fd, message, SIZE_BUF, 0);
     puts(message);
 
-    // if(!strcmp(message, "Begin to download\n"))
-    //     write_file(fd, books);
+    if(!strcmp(message, "Begin to download\n"))
+        write_file(fd, books);
 }
 
 void delete_books(int fd){
@@ -195,10 +195,9 @@ int main () {
                 add_books(fd);
             } else if(!strcmp(cmd, "download")){
                 download_books(fd);
-            } 
-            // else if(!strcmp(cmd, "delete")){
-            //     delete_books(fd);
-            // }
+            } else if(!strcmp(cmd, "delete")){
+                delete_books(fd);
+            }
         }
 
         sleep(2);
