@@ -126,6 +126,38 @@ void delete_books(int fd){
 
 }
 
+void see_books(int fd){
+    int ret_val;
+    char temp[SIZE_BUF], flag[100];
+    int loop = 1;
+
+    ret_val = recv(fd, flag, SIZE_BUF, 0);
+    // printf("%s\n", flag);
+    puts("");
+    while(loop){
+        ret_val = recv(fd, temp, SIZE_BUF, 0);
+        if(strstr(temp, "sasdf") != NULL){
+            loop = 0;
+            break;
+        }
+        printf("Nama: %s\n", temp);
+
+        ret_val = recv(fd, temp, SIZE_BUF, 0);
+        printf("Publisher: %s\n", temp);
+
+        ret_val = recv(fd, temp, SIZE_BUF, 0);
+        printf("Tahun publishing: %s", temp);
+
+        ret_val = recv(fd, temp, SIZE_BUF, 0);
+        printf("Esktensi file: %s\n", temp);
+
+        ret_val = recv(fd, temp, SIZE_BUF, 0);
+        printf("FilePath: %s\n\n", temp);
+
+    }
+    printf("KELUAR LOOP\n");
+}
+
 int main () {
     struct sockaddr_in saddr;
     int fd, ret_val;
@@ -197,6 +229,8 @@ int main () {
                 download_books(fd);
             } else if(!strcmp(cmd, "delete")){
                 delete_books(fd);
+            }else if(!strcmp(cmd, "see")){
+                see_books(fd);
             }
         }
 
