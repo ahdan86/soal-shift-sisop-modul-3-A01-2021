@@ -45,7 +45,10 @@ void *makeMoveDir (void *arg)
     char ext[10];
     strcpy(ext,get_filename_ext((char *)arg));
     if(ext[0]=='\0'){
-        strcat(folderPath, "Unknown");
+        if(strchr(arg,'.')!=NULL){
+            strcat(folderPath,"Hidden");
+        }
+        else strcat(folderPath,"Unknown");
     }
     else{
         strcat(folderPath, ext);
@@ -67,7 +70,13 @@ void *makeMoveDir (void *arg)
     if(stat==0&&trig==false) printf("%s : Berhasil Dikategorikan\n",get_filename((char *)arg));
     else if(stat==-1&&trig==false) printf("%s : Sad, gagal :(\n",get_filename((char *)arg));
     if(stat==-1&&trig==true) trig2=true;
+    // printf("%s %s %s %d",filePathOld,filePathNew,arg,stat);
 }
+
+// void fungsiDBintang()
+// {
+
+// }
 
 int main(int argc, char *argv[])
 {
@@ -76,7 +85,7 @@ int main(int argc, char *argv[])
         for(int i = 2; i<argc ;i++){
             int error = pthread_create(&tid[i], NULL, makeMoveDir, (void *)argv[i]);
             if(error != 0){
-                printf("\nCan't create Thread! : [%s]\n",strerror(error));
+                printf("\nCant Create Thread! : [%s]\n",strerror(error));
             }
         }
 
@@ -115,14 +124,14 @@ int main(int argc, char *argv[])
             int i=0;
             while ((dir = readdir(d)) && d!= NULL)
             {
-                if(!strcmp(dir->d_name,"soal3.c")||!strcmp(dir->d_name,".")||!strcmp(dir->d_name,"..")||dir->d_type==DT_DIR)
+                if(!strcmp(dir->d_name,"soal3.o")||!strcmp(dir->d_name,"soal3.c")||!strcmp(dir->d_name,".")||!strcmp(dir->d_name,"..")||dir->d_type==DT_DIR)
                 {
                     continue;
                 }
 
                 int error = pthread_create(&tid2[i], NULL, makeMoveDir, dir->d_name);
                 if(error != 0){
-                    printf("\nCan't create Thread! : [%s]\n",strerror(error));
+                    printf("\nCant Create Thread! : [%s]\n",strerror(error));
                 }
 
                 i++;
