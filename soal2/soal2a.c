@@ -13,7 +13,7 @@ int M1[B1][K1B2];
 int M2[K1B2][K2];
 int (*value)[10];
 int res = 0;
-pthread_t thread1, thread2, thread3;
+
 
 
 void *inputM1(void *arg)
@@ -69,6 +69,7 @@ void *perkalian(void *arg)
 	return NULL;
 }
 
+pthread_t thread1, thread2, thread3;
 int main()
 {
     //Shared Memory
@@ -92,7 +93,7 @@ int main()
 		pthread_join(thread3,NULL);
 	}
 
-	printf("Hasil Perkalian antara matriks A dan B adalah: \n");
+	printf("Hasil Perkalian: \n");
 	for(int i=0; i<B1; i++){
 		for(int j=0;j<K2;j++){
 			printf("%d ", value[i][j]);
