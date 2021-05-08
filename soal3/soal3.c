@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
         for(int i = 2; i<argc ;i++){
             int error = pthread_create(&tid[i], NULL, makeMoveDir, (void *)argv[i]);
             if(error != 0){
-                printf("\nCreate Thread Error! : [%s]\n",strerror(error));
+                printf("\nCan't create Thread! : [%s]\n",strerror(error));
             }
         }
 
@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
 
                 int error = pthread_create(&tid2[i], NULL, makeMoveDir, dir->d_name);
                 if(error != 0){
-                    printf("\nCreate Thread Error! : [%s]\n",strerror(error));
+                    printf("\nCan't create Thread! : [%s]\n",strerror(error));
                 }
 
                 i++;
