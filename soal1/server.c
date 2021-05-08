@@ -235,7 +235,20 @@ void download_books(int send_clt, int rcv_clt){
 	}
 }
 
-void delete_books(int send_clt, int rcv_clt){
+void make_log(char cmd[], char fileName[], char id[], char password[]){
+	printf("\nLOG --- ");
+	FILE *fp = fopen("running.log", "a");
+	if(!strcmp(cmd, "add")){
+		printf("Tambah : %s(%s:%s)\n\n", fileName, id, password);
+		fprintf(fp, "Tambah : %s(%s:%s)\n", fileName, id, password);
+	}else if(!strcmp(cmd, "delete")){
+		printf("Hapus : %s(%s:%s)\n\n", fileName, id, password);
+		fprintf(fp, "Hapus : %s(%s:%s)\n", fileName, id, password);
+	}
+	fclose(fp);
+}
+
+void delete_books(int send_clt, int rcv_clt, char id[], char password[]){
 	char books[SIZE];
 	int ret_val1 = recv(send_clt, books, SIZE, 0);
 	int  status_val;
@@ -254,13 +267,14 @@ void delete_books(int send_clt, int rcv_clt){
 	    printf("DEBUG CHECK PATH NEW --- %s\n\n", temp2);
 	    rename(temp, temp2);
 	    deleteTsv(books);
+		make_log("delete", books, id, password);
 	}else {
 	    status_val = send(rcv_clt,
 	                "File does not exist\n", SIZE, 0);
 	}
 }
 
-void add_books(int send_clt, int rcv_clt){
+void add_books(int send_clt, int rcv_clt, char id[], char password[]){
 	char publisher[SIZE], tahun[SIZE], filePath[SIZE];
 	char filePathDir[SIZE], fileName[15];
 	int ret_val1 = recv(send_clt, publisher, SIZE, 0);
@@ -284,6 +298,8 @@ void add_books(int send_clt, int rcv_clt){
 	FILE *temp = fopen("files.tsv", "a+");
 	fprintf(temp, "%s\t%s\t%s\n", filePath, publisher, tahun);
 	fclose(temp);
+
+	make_log("add", fileName, id, password);
 }
 
 int main () {
@@ -304,7 +320,11 @@ int main () {
     if(access("files.tsv", F_OK ) != 0 ) {
 		FILE *fp = fopen("files.tsv", "w+");
 		fclose(fp);
-	} 
+	}
+	if(access("running.log", F_OK ) != 0 ) {
+		FILE *fp = fopen("running.log", "w+");
+		fclose(fp);
+	}  
 
     /* Get the socket server fd */
     server_fd = create_tcp_server_socket(); 
@@ -404,7 +424,7 @@ int main () {
                                 printf("Kamu berhak mengakses command\n\n");
                                 //add command
                                 if(!strcmp(cmd, "add")){
-									add_books(all_connections[i], all_connections[serving]);
+									add_books(all_connections[i], all_connections[serving], id, password);
                                 } 
                                 //download command
                                 else if(!strcmp(cmd, "download")){
@@ -412,9 +432,10 @@ int main () {
                                 }
                                 //delete command
                                 else if(!strcmp(cmd, "delete")){
-									delete_books(all_connections[i], all_connections[serving]);
+									delete_books(all_connections[i], all_connections[serving], id, password);
                                 }
                             } else {
+								//user not login
                                 status_val = send(all_connections[serving],
                                         "notlogin\n", SIZE, 0);
                                 continue;
