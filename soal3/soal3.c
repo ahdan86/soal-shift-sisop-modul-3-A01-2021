@@ -52,7 +52,7 @@ void *makeMoveDir (void *arg)
     }
     else{
         for(int i=0;i<strlen(ext);i++){
-            printf("masuk");
+//             printf("masuk");
             ext[i] = tolower(ext[i]);
         }
         printf("%s",ext);
