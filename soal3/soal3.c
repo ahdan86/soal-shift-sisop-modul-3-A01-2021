@@ -8,6 +8,7 @@
 #include<dirent.h>
 #include <sys/stat.h>
 #include <stdbool.h>
+#include <ctype.h>
 
 const char *get_filename(const char *filename){
     const char *dot = strrchr(filename, '/');
@@ -26,7 +27,6 @@ bool trig = false , trig2=false;
 char folder[100];
 void *makeMoveDir (void *arg)
 {
-    // printf("Masuk Thread\n");
     char root[100] = "/home/ahdan/Modul3";
     
     char folderPath[100]; 
@@ -51,6 +51,11 @@ void *makeMoveDir (void *arg)
         else strcat(folderPath,"Unknown");
     }
     else{
+        for(int i=0;i<strlen(ext);i++){
+            printf("masuk");
+            ext[i] = tolower(ext[i]);
+        }
+        printf("%s",ext);
         strcat(folderPath, ext);
     }   
 
@@ -73,7 +78,7 @@ void *makeMoveDir (void *arg)
     // printf("%s %s %s %d",filePathOld,filePathNew,arg,stat);
 }
 
-// void fungsiDBintang()
+// void fungsiDBintang(char )
 // {
 
 // }
@@ -93,7 +98,6 @@ int main(int argc, char *argv[])
 			pthread_join(tid[j], NULL);
         }
     }
-    
     else
     {
         if(argc > 3){
@@ -102,7 +106,6 @@ int main(int argc, char *argv[])
         }
         else{
             trig = true;
-            
             pthread_t tid2[1000];
             
             DIR *d;
@@ -142,7 +145,6 @@ int main(int argc, char *argv[])
             }
             closedir(d);
 
-            
             if(trig2) printf("Yah, gagal disimpan :(\n");
             else printf("Direktori sukses disimpan!\n");
         }
