@@ -13,8 +13,6 @@
 #define LOGIN_MESSAGE "Id and Password is sent\n"
 #define SIZE 100
 
-int mutex = 0;
-
 int create_tcp_server_socket() {
     struct sockaddr_in saddr;
     int fd, ret_val;
@@ -49,46 +47,40 @@ int create_tcp_server_socket() {
     }
     return fd;
 }
+/*------------------------------------------------------------- NO 1A -------------------------------------------------------------*/
+int check_IdPassword(char id[], char password[], char cmd[]){
+	char line[512];
+	const char delim[2] = ":";
+	char *tempId, *tempPass;
 
-int checkString(char id[], char password[]){
-    char akun[512], temp[512];
-    FILE *fp = fopen("akun.txt", "r");
-    sprintf(akun, "%s:%s", id, password);
-    //check if there is id and password that match
-    while ( fscanf(fp,"%s", temp) == 1){
-        //Add a for loop till strstr(string, student) does-not returns null. 
-        if(strstr(temp, akun)!=0) {//if match found
-                return 1;
-        }
-    }
-    fclose(fp);
-    return 0;
-}
+	FILE *fp = fopen("akun.txt", "r");
+	while(fgets(line, 512, fp)){
+		char *newline = strchr( line, '\n' ); //getrid god dang newline
+		if ( newline )
+			*newline = 0;
+		tempId = strtok(line, delim);
+		tempPass = strtok(NULL, delim);
 
-int checkPath(char fileName[]){
-    char temp[100];
-    char *ret;
-    FILE *fp = fopen("files.tsv", "r");
-
-    //check if there is id and password that match
-    while ( fscanf(fp,"%s", temp) == 1){
-        //Add a for loop till strstr(string, student) does-not returns null. 
-        if(strstr(temp, fileName)!=0) {//if match found
-                return 1;
-        }
-    }
-    fclose(fp);
-    return 0;
+		if(!strcmp(cmd, "register")){
+			if(!strcmp(tempId, id))
+				return 1;
+		}else{
+			if(!strcmp(tempId, id) && !strcmp(tempPass, password))
+				return 1;
+		}
+	}
+	fclose(fp);
+	return 0;
 }
 
 void register_login(int all_connections_i, char cmd[], char id[], char password[], 
                     int *userLoggedIn, int all_connections_serving ){
-    int ret_val1, ret_val2;
+    int ret_val;
     int status_val;
     if(!strcmp(cmd, "register")) {
-        ret_val1 = recv(all_connections_i, id, SIZE, 0);
-        ret_val2 = recv(all_connections_i, password, SIZE, 0);
-        if(checkString(id, password)) {
+        ret_val = recv(all_connections_i, id, SIZE, 0);
+        ret_val = recv(all_connections_i, password, SIZE, 0);
+        if(check_IdPassword(id, password, cmd)) {
             status_val = send(all_connections_serving,
                     "userfound\n", SIZE, 0);
         } else {
@@ -100,9 +92,9 @@ void register_login(int all_connections_i, char cmd[], char id[], char password[
                     "regloginsuccess\n", SIZE, 0);
         }
     } else if(!strcmp(cmd, "login")) {
-        ret_val1 = recv(all_connections_i, id, SIZE, 0);
-        ret_val2 = recv(all_connections_i, password, SIZE, 0);
-        if(!checkString(id, password))
+        ret_val = recv(all_connections_i, id, SIZE, 0);
+        ret_val = recv(all_connections_i, password, SIZE, 0);
+        if(!check_IdPassword(id, password, cmd))
             status_val = send(all_connections_serving,
                     "wrongpass\n", SIZE, 0);
         else {
@@ -111,6 +103,38 @@ void register_login(int all_connections_i, char cmd[], char id[], char password[
                     "regloginsuccess\n", SIZE, 0);
         }
     }
+}
+/*------------------------------------------------------------- END NO 1A -------------------------------------------------------------*/
+
+/*------------------------------------------------------------- NO 1H -------------------------------------------------------------*/
+void make_log(char cmd[], char fileName[], char id[], char password[]){
+	printf("\nLOG --- ");
+	FILE *fp = fopen("running.log", "a");
+	if(!strcmp(cmd, "add")){
+		printf("Tambah : %s(%s:%s)\n\n", fileName, id, password);
+		fprintf(fp, "Tambah : %s(%s:%s)\n", fileName, id, password);
+	}else if(!strcmp(cmd, "delete")){
+		printf("Hapus : %s(%s:%s)\n\n", fileName, id, password);
+		fprintf(fp, "Hapus : %s(%s:%s)\n", fileName, id, password);
+	}
+	fclose(fp);
+}
+/*------------------------------------------------------------- END NO 1H-------------------------------------------------------------*/
+
+/*------------------------------------------------------------- NO 1C -------------------------------------------------------------*/
+void getDir(char filePathDir[], char fileName[]){
+    int len = strlen(filePathDir)-1;
+    int index = 0;
+    while(len){
+        filePathDir[len+1] = '\0';
+        if(filePathDir[len]=='/'){
+            break;
+        }
+        fileName[index] = filePathDir[len];
+        len--;
+        index++;
+    }
+	fileName[index] = '\0';
 }
 
 char *strrev(char *str)
@@ -128,21 +152,56 @@ char *strrev(char *str)
     return str;
 }
 
-void getDir(char filePathDir[], char fileName[]){
-    int len = strlen(filePathDir)-1;
-    int index = 0;
-    while(len){
-        filePathDir[len+1] = '\0';
-        if(filePathDir[len]=='/'){
+void write_file(int fd, char fileName[]){
+    int n;
+    char fullPath[100] = "/home/erki/Documents/modul3/soalShift1/Server/FILES/";
+    char buffer[SIZE];
+
+    strcat(fullPath, fileName);
+    FILE *fp = fopen(fullPath, "w");
+    fclose(fp);
+ 
+    while (1) {
+        n = recv(fd, buffer, SIZE, 0);
+        if (n <= 0){
             break;
+            return;
         }
-        fileName[index] = filePathDir[len];
-        len--;
-        index++;
+        if(!strcmp(buffer, "done"))
+            return;
+        fp = fopen(fullPath, "a");
+        // printf("WRITING --- %s\n", buffer);
+        fprintf(fp, "%s", buffer);
+        bzero(buffer, SIZE);
+        fclose(fp);
     }
-	fileName[index] = '\0';
+    return;
 }
 
+void add_books(int send_clt, int rcv_clt, char id[], char password[]){
+	char publisher[SIZE], tahun[SIZE], filePath[SIZE],  filePathDir[SIZE], fileName[15];
+	int ret_val;
+	
+	ret_val = recv(send_clt, publisher, SIZE, 0);
+	ret_val = recv(send_clt, tahun, SIZE, 0);
+	ret_val = recv(send_clt, filePath, SIZE, 0);
+
+	sprintf(filePathDir, "%s", filePath);
+	getDir(filePathDir, fileName);
+	strrev(fileName);
+
+	write_file(send_clt, fileName);
+
+
+	FILE *temp = fopen("files.tsv", "a+");
+	fprintf(temp, "%s\t%s\t%s\n", filePath, publisher, tahun);
+	fclose(temp);
+
+	make_log("add", fileName, id, password);
+}
+/*------------------------------------------------------------- END NO 1C-------------------------------------------------------------*/
+
+/*------------------------------------------------------------- NO 1D -------------------------------------------------------------*/
 void sendFile(int sockfd, char filePath[]){
     int n;
     char data[SIZE] = {0};
@@ -160,46 +219,48 @@ void sendFile(int sockfd, char filePath[]){
     int ret_val = send(sockfd, "done", SIZE, 0);
 }
 
-void write_file(int fd, char fileName[]){
-    int n;
-    char fullPath[100] = "/home/erki/Documents/modul3/soalShift1/Server/FILES/";
-    char buffer[SIZE];
 
-    strcat(fullPath, fileName);
-    printf ("DEBUG --- %s\n", fullPath);
-    FILE *fp = fopen(fullPath, "w");
-    fclose(fp);
- 
-    while (1) {
-        n = recv(fd, buffer, SIZE, 0);
-        if (n <= 0){
-            break;
-            return;
-        }
-        if(!strcmp(buffer, "done"))
-            return;
-        fp = fopen(fullPath, "a");
-        printf("DATA --- %s\n", buffer);
-        fprintf(fp, "%s", buffer);
-        bzero(buffer, SIZE);
-        fclose(fp);
+int checkPath(char fileName[]){
+    char temp[100];
+    FILE *fp = fopen("files.tsv", "r");
+
+    while ( fscanf(fp,"%s", temp) == 1){
+        if(strstr(temp, fileName)!=0)//if match found
+                return 1;
     }
-    return;
+    fclose(fp);
+    return 0;
 }
 
+void download_books(int send_clt, int rcv_clt){
+	char books[SIZE];
+	int line = 1;
+	int ret_val, status_val;
+	ret_val = recv(send_clt, books, SIZE, 0);
+
+	if(checkPath(books)){
+		status_val = send(rcv_clt, "Begin to download\n", SIZE, 0);
+		char temp[SIZE] = "/home/erki/Documents/modul3/soalShift1/Server/FILES/";
+
+		strcat(temp, books);
+		sendFile(send_clt, temp);
+	} else {
+		status_val = send(rcv_clt, "File does not exist\n", SIZE, 0);
+	}
+}
+/*------------------------------------------------------------- END NO 1D-------------------------------------------------------------*/
+
+/*------------------------------------------------------------- NO 1E -------------------------------------------------------------*/
 int deleteTsv(char filename[]) {
     FILE *tsv = fopen("files.tsv", "r+");
     FILE *tmp = fopen("temp.tsv", "w+");
     char temp[256], line[256];
 
 	while(fgets(line, 256, tsv) != 0){
-        // Cek apakah id:password sudah ada.
-        if(sscanf(line, "%255[^\n]", temp) != 1) break;
-        if(strstr(temp, filename) != 0) {
-            int b;
-        } else {
+        if(sscanf(line, "%255[^\n]", temp) != 1) 
+			break;
+        if(strstr(temp, filename) == 0) 
             fprintf(tmp, "%s\n", temp);
-        }
     }
 
     while(fgets(line, 256, tsv) != 0){
@@ -214,41 +275,6 @@ int deleteTsv(char filename[]) {
     return 0;
 }
 
-void download_books(int send_clt, int rcv_clt){
-	char books[SIZE];
-	int line = 1;
-	int ret_val9;
-	int status_val;
-	ret_val9 = recv(send_clt, books, SIZE, 0);
-
-	printf("The book that requested : %s\n", books);
-	if(checkPath(books)){
-		status_val = send(rcv_clt,
-					"Begin to download\n", SIZE, 0);
-		char temp[SIZE] = "/home/erki/Documents/modul3/soalShift1/Server/FILES/";
-
-		strcat(temp, books);
-		printf("DEBUG CHECK PATH --- %s\n", temp);
-		sendFile(send_clt, temp);
-	} else {
-		status_val = send(rcv_clt,
-					"File does not exist\n", SIZE, 0);
-	}
-}
-
-void make_log(char cmd[], char fileName[], char id[], char password[]){
-	printf("\nLOG --- ");
-	FILE *fp = fopen("running.log", "a");
-	if(!strcmp(cmd, "add")){
-		printf("Tambah : %s(%s:%s)\n\n", fileName, id, password);
-		fprintf(fp, "Tambah : %s(%s:%s)\n", fileName, id, password);
-	}else if(!strcmp(cmd, "delete")){
-		printf("Hapus : %s(%s:%s)\n\n", fileName, id, password);
-		fprintf(fp, "Hapus : %s(%s:%s)\n", fileName, id, password);
-	}
-	fclose(fp);
-}
-
 void delete_books(int send_clt, int rcv_clt, char id[], char password[]){
 	char books[SIZE];
 	int ret_val1 = recv(send_clt, books, SIZE, 0);
@@ -258,57 +284,23 @@ void delete_books(int send_clt, int rcv_clt, char id[], char password[]){
 
 	printf("The book that wants to be deleted : %s\n", books);
 	if(checkPath(books)){
-	    status_val = send(rcv_clt,
-	                "Begin to delete\n", SIZE, 0);
-
+	    status_val = send(rcv_clt, "Begin to delete\n", SIZE, 0);
 	    strcat(temp, books);
 	    strcat(temp2, books);
 
-	    printf("DEBUG CHECK PATH OLD --- %s\n", temp);
-	    printf("DEBUG CHECK PATH NEW --- %s\n\n", temp2);
 	    rename(temp, temp2);
 	    deleteTsv(books);
 		make_log("delete", books, id, password);
-	}else {
-	    status_val = send(rcv_clt,
-	                "File does not exist\n", SIZE, 0);
-	}
+	}else 
+	    status_val = send(rcv_clt, "File does not exist\n", SIZE, 0);
 }
+/*------------------------------------------------------------- END NO 1E-------------------------------------------------------------*/
 
-void add_books(int send_clt, int rcv_clt, char id[], char password[]){
-	char publisher[SIZE], tahun[SIZE], filePath[SIZE];
-	char filePathDir[SIZE], fileName[15];
-	int ret_val1 = recv(send_clt, publisher, SIZE, 0);
-	int ret_val2 = recv(send_clt, tahun, SIZE, 0);
-	int ret_val4 = recv(send_clt, filePath, SIZE, 0);
-	printf("Publisher : %s\n", publisher);
-	printf("Tahun Publikasi: %s\n", tahun);
-	printf("Filepath: %s\n", filePath);
-
-	sprintf(filePathDir, "%s", filePath);
-	getDir(filePathDir, fileName);
-	strrev(fileName);
-	printf("Filepath: %s\n\n", filePath);
-	printf("Filepath Dir: %s\n\n", filePathDir);
-	printf("Filename: %s\n\n", fileName);
-
-	write_file(send_clt, fileName);
-
-	printf("KELUAR DARI UPLOAD ----\n");
-
-	FILE *temp = fopen("files.tsv", "a+");
-	fprintf(temp, "%s\t%s\t%s\n", filePath, publisher, tahun);
-	fclose(temp);
-
-	make_log("add", fileName, id, password);
-}
-
+/*------------------------------------------------------------- NO 1F -------------------------------------------------------------*/
 void see_books(int rcv_clt){
 	char *publisher, *tahun, *filePath, 
 			*nameFile, *ekstensi;
 	char  line[512], filePathDir[SIZE], tempName[SIZE];
-	char pub_f[SIZE], tahun_f[SIZE], filePath_f[SIZE], 
-			nameFile_f[SIZE], ekstensi_f[SIZE];
 	const char tab[2] = "\t";
 	int status_val;
 
@@ -316,43 +308,89 @@ void see_books(int rcv_clt){
 	status_val = send(rcv_clt, "not-done", SIZE, 0);
 
 	while(fgets(line, 512, fp)){
-		printf("LINE ---- %s\n", line);
+		char *newline = strchr( line, '\n' ); //getrid god dang newline
+		if ( newline )
+			*newline = 0;
 
-		char *endStr;
-		filePath = strtok_r(line, tab, &endStr);
-		strcpy(filePath_f, filePath);
-		publisher = strtok_r(NULL, tab, &endStr);
-		strcpy(pub_f, publisher);
-		tahun = strtok_r(NULL, tab, &endStr);
-		strcpy(tahun_f, tahun);
+		filePath = strtok(line, tab);
+		publisher = strtok(NULL, tab);
+		tahun = strtok(NULL, tab);
 
 		sprintf(filePathDir, "%s", filePath);
 		getDir(filePathDir, tempName);
 		strrev(tempName);
-		// printf("TEMP NAME ---- %s\n", tempName);
+		nameFile = strtok(tempName, ".");
+		ekstensi = strtok(NULL, ".");
 
-		nameFile = strtok_r(tempName, ".", &endStr);
-		strcpy(nameFile_f, nameFile);
-		ekstensi = strtok_r(NULL, ".", &endStr);
-		strcpy(ekstensi_f, ekstensi);
+		printf("Nama: %s\n", nameFile);
+		printf("Publisher: %s\n", publisher);
+		printf("Tahun publishing: %s\n", tahun);
+		printf("Esktensi file: %s\n", ekstensi);
+		printf("FilePath: %s\n\n", filePath);
 
-		printf("SEEING FILES----\n");
-		printf("Nama: %s\n", nameFile_f);
-		printf("Publisher: %s\n", pub_f);
-		printf("Tahun publishing: %s\n", tahun_f);
-		printf("Esktensi file: %s\n", ekstensi_f);
-		printf("FilePath: %s\n\n", filePath_f);
-
-		status_val = send(rcv_clt, nameFile_f, SIZE, 0);
-		status_val = send(rcv_clt, pub_f, SIZE, 0);
-		status_val = send(rcv_clt, tahun_f, SIZE, 0);
-		status_val = send(rcv_clt, ekstensi_f, SIZE, 0);
-		status_val = send(rcv_clt, filePath_f, SIZE, 0);
-		// status_val = send(rcv_clt, "not-done", SIZE, 0);
+		status_val = send(rcv_clt, nameFile, SIZE, 0);
+		status_val = send(rcv_clt, publisher, SIZE, 0);
+		status_val = send(rcv_clt, tahun, SIZE, 0);
+		status_val = send(rcv_clt, ekstensi, SIZE, 0);
+		status_val = send(rcv_clt, filePath, SIZE, 0);
 	}
 	fclose(fp);
-	status_val = send(rcv_clt, "sasdf", SIZE, 0);
+	status_val = send(rcv_clt, "done", SIZE, 0);
 }
+/*------------------------------------------------------------- END NO 1F-------------------------------------------------------------*/
+
+/*------------------------------------------------------------- NO 1G -------------------------------------------------------------*/
+void find_books(int send_clt, int rcv_clt){
+	int status_val, found = 0;
+    char *publisher, *tahun, *filePath, 
+			*nameFile, *ekstensi;
+	char bookFind[SIZE], line[512], filePathDir[SIZE], tempName[SIZE];
+	const char tab[2] = "\t";
+
+    status_val = recv(send_clt, bookFind, SIZE, 0);
+    printf("FILE TO FIND --- %s\n", bookFind);
+
+    FILE *fp = fopen("files.tsv", "r");
+    while(fgets(line, 512, fp)){
+        char *newline = strchr( line, '\n' ); //getrid god dang newline
+		if ( newline )
+			*newline = 0;
+		
+		filePath = strtok(line, tab);
+        if(strstr(filePath, bookFind) == 0)
+            continue;
+
+        found = 1;           
+		publisher = strtok(NULL, tab);
+		tahun = strtok(NULL, tab);
+
+		sprintf(filePathDir, "%s", filePath);
+		getDir(filePathDir, tempName);
+		strrev(tempName);
+		nameFile = strtok(tempName, ".");
+		ekstensi = strtok(NULL, ".");
+
+		printf("Nama: %s\n", nameFile);
+		printf("Publisher: %s\n", publisher);
+		printf("Tahun publishing: %s\n", tahun);
+		printf("Esktensi file: %s\n", ekstensi);
+		printf("FilePath: %s\n\n", filePath);
+
+		status_val = send(rcv_clt, nameFile, SIZE, 0);
+		status_val = send(rcv_clt, publisher, SIZE, 0);
+		status_val = send(rcv_clt, tahun, SIZE, 0);
+		status_val = send(rcv_clt, ekstensi, SIZE, 0);
+		status_val = send(rcv_clt, filePath, SIZE, 0);
+    }
+
+    fclose(fp);
+	status_val = send(rcv_clt, "done", SIZE, 0);
+    if(!found)
+        status_val = send(rcv_clt, "file not found", SIZE, 0);
+    else
+        status_val = send(rcv_clt, "ketemu  hehe", SIZE, 0);
+}
+/*------------------------------------------------------------- END NO 1G-------------------------------------------------------------*/
 
 int main () {
     fd_set read_fd_set;
@@ -441,7 +479,7 @@ int main () {
                     printf("Returned fd is %d [index, i: %d]\n", all_connections[i], i);
                     printf("Command : %s\n", cmd);
 
-                    //check if client terminante
+                    //check if client terminate
                     if (ret_val1 == 0 || ret_val2 == 0 || ret_val3 == 0) {
                         printf("Id of the user now : %s\n", id);
                         printf("Password of the user now : %s\n", password);
@@ -489,6 +527,10 @@ int main () {
 								//see command
                                 else if(!strcmp(cmd, "see")){
 									see_books(all_connections[serving]);
+                                }
+								//find command
+                                else if(!strcmp(cmd, "find")){
+									find_books(all_connections[i], all_connections[serving]);
                                 }
                             } else {
 								//user not login
