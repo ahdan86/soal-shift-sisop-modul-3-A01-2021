@@ -60,7 +60,6 @@ void write_file(int fd, char fileName[]){
     int n;
     char buffer[SIZE_BUF];
 
-    printf ("DEBUG --- %s\n", fileName);
     FILE *fp = fopen(fileName, "w");
     fclose(fp);
 
@@ -73,7 +72,7 @@ void write_file(int fd, char fileName[]){
         if(!strcmp(buffer, "done"))
             return;
         fp = fopen(fileName, "a");
-        printf("DATA --- %s\n", buffer);
+        // printf("DATA --- %s\n", buffer);
         fprintf(fp, "%s", buffer);
         bzero(buffer, SIZE_BUF);
         fclose(fp);
@@ -111,7 +110,7 @@ void download_books(int fd){
     puts(message);
 
     if(!strcmp(message, "Begin to download\n"))
-        write_file(fd, books);
+		write_file(fd, books);
 }
 
 void delete_books(int fd){
@@ -136,7 +135,38 @@ void see_books(int fd){
     puts("");
     while(loop){
         ret_val = recv(fd, temp, SIZE_BUF, 0);
-        if(strstr(temp, "sasdf") != NULL){
+        if(strstr(temp, "done") != NULL){
+            loop = 0;
+            break;
+        }
+        printf("Nama: %s\n", temp);
+
+        ret_val = recv(fd, temp, SIZE_BUF, 0);
+        printf("Publisher: %s\n", temp);
+
+        ret_val = recv(fd, temp, SIZE_BUF, 0);
+        printf("Tahun publishing: %s\n", temp);
+
+        ret_val = recv(fd, temp, SIZE_BUF, 0);
+        printf("Esktensi file: %s\n", temp);
+
+        ret_val = recv(fd, temp, SIZE_BUF, 0);
+        printf("FilePath: %s\n\n", temp);
+
+    }
+}
+
+void find_books(int fd){
+    int ret_val;
+    char nameFile[SIZE_BUF], flag[100], temp[SIZE_BUF] ;
+    int loop = 1;
+    
+    scanf("%s", nameFile);
+    ret_val = send(fd, nameFile, SIZE_BUF, 0);
+    
+    while(loop){
+        ret_val = recv(fd, temp, SIZE_BUF, 0);
+        if(strstr(temp, "done") != NULL){
             loop = 0;
             break;
         }
@@ -155,7 +185,10 @@ void see_books(int fd){
         printf("FilePath: %s\n\n", temp);
 
     }
-    printf("KELUAR LOOP\n");
+
+    ret_val = recv(fd, flag, SIZE_BUF, 0);
+    if(!strcmp(flag, "file not found"))
+        printf("%s\n\n", flag);
 }
 
 int main () {
@@ -211,7 +244,7 @@ int main () {
             } else {
                 ret_val = recv(fd, message, SIZE_BUF, 0);
                 if(!strcmp(message, "notlogin\n")) {
-                    printf("HEH KAMU LOGIN / REGISTER DULU WOI!\nKETIK REGISTER/LOGIN DULU\n");
+                    printf("TOLONG REGISTER/ LOGIN DULU Y\n\n");
                 } else {
                     commandTrue = 1;
                 }
@@ -231,6 +264,8 @@ int main () {
                 delete_books(fd);
             }else if(!strcmp(cmd, "see")){
                 see_books(fd);
+            }else if(!strcmp(cmd, "find")){
+                find_books(fd);
             }
         }
 
