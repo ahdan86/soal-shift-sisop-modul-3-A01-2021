@@ -339,9 +339,15 @@ int main () {
 
 Pada kepingan kode diatas, pada saat program dijalankan, program akan meminta login atau register terlebih dahulu. Jika client mencoba untuk mengakses command lainnya, sistem akan memberikan pesan kepada client untuk melakukan signin terlebih dahulu. Program juga akan melakukan pengecekan untuk username yang sama saat client akan melakukan register dan pengecekan id dan password yang sesuai saat client melakukan login. Program akan terus meminta client untuk melakukan antara kedua hal tersebut hingga salah satu dari kedua perintah diatas berhasil dilakukan. Setelah berhasil, client akan dapat mengakses command lainnya di program ini. Untuk pembuatan database **akun.txt**, server akan melakukan pengecekan apakah sudah terdapat file tersebut. Jika tidak, maka file baru akan dibuat..
 
+### Screenshot pengerjaan no 1A
+![image](soal1/ss_1a.jpg)
+
 ### No 1b
 
 Untuk soal ini, program akan membuat sebuah database bernama **file.tsv** yang akan menyimpan path, publisher, dan tahun dari file yang akan dimasukkan ke dalam sistem. Database ini akan dijadikan acuan saat dilakukan perpindahan file (download, upload, dan delete) di sistem.
+
+### Screenshot pengerjaan no 1B
+![image](soal1/ss_1b.jpg)
 
 **server.c**
 
@@ -489,6 +495,9 @@ void add_books(int fd){
 
 Pada kepingan kode diatas, client akan mengirimkan informasi berupa publisher, tahun publikasi, dan juga path untuk file yang akan diupload. Ketika informasi tersebut diterima oleh server, maka akan dilakukan pengecekan apakah path yang dikirimkan oleh client itu benar adanya. Jika benar, maka client akan mengirimkan file dengan cara dilakukan **read** per line dari file yang akan dikirimkan dan server akan membuat file dengan nama dan isi yang sesuai di folder **FILES** dan jika tidak, maka akan dikirimkan pesan ke client bahwa file yang akan diupload tidak ada. Setelah transfer data dan pembuatan file selesai, maka row baru akan ditambahkan di **files.tsv** dengan format `FILEPATH (tab) PUBLISHER (tab) TAHUN`. Untuk setiap penambahan sukses file ke dalam sistem, maka akan dicatat di dalam **running.log**, log yang dicatat berupa informasi penambahan, nama file, id, dan password yang menambahkan file ke dalam server.
 
+### Screenshot pengerjaan no 1C
+![image](soal1/ss_1c.jpg)
+
 ### No 1d
 
 Untuk soal ini, program memungkinkan client agar dapat mendownload file yang telah ada di server dalam folder **FILES**. Folder yang didownload akan disimpan dalam folder client. Untuk pengimplementasiannya dapat dilihat di bawah ini.
@@ -591,6 +600,9 @@ void download_books(int fd){
 
 Pada kepingan kode diatas, client akan mengirimkan informasi berupa nama file yang akan didownload. Saat informasi terebut diterima oleh server, maka dilakukan pengecekan pada **files.tsv** apakah terdapa file yang ingin didownload. Jika tidak, maka server akan mengirimkan pesan bahwa file yang ingin didownload tidak ada. Jika ada, maka server akan mengirimkan isi file per line dan pada pihak client akan dilakukan pembuatan file pada folder client dan penerimaan data per line hingga EOF.
 
+### Screenshot pengerjaan no 1D
+![image](soal1/ss_1d.jpg)
+
 ### No 1e
 
 Untuk soal ini, program memungkinkan client agar dapat menghapus file yang terdapat di dalam server. Pada saat file di dalam server akan dihapus, maka row informasi tentang file tersebut di dalam database **files.tsv** akan hilang. Namun, file di dalam folder FILES hanya akan diubah namannya menjadi old-namefile.extension. Untuk pengimplementasiannya dapat dilihat di bawah ini
@@ -663,6 +675,9 @@ void delete_books(int fd){
 ```
 
 Pada kepingan kode diatas, client akan mengirimkan informasi berupa nama file yang akan dihapus. Setelah server menerima nama file tersebut, maka akan dilakukan pengecekan di dalam **files.tsv** apakah terdapat nama file tersebut di dalam server. Jika ada, maka isi dari folder **files.tsv** selain row yang terdapat nama file tersebut akan dicopy ke dalam file **temp.tsv**. Setelah selesai, file **files.tsv** akan dihapus dan file **temp.tsv** akan direname menjadi **files.tsv**. Setelah itu, file di dalam server akan diubah namanya menjadi `old-namefile.extension`. Terakhir, akan dibuat log pada file **running.log** yang akan berisi informasi penghapusan, nama file yang dihapus, id, dan password client yang melakukan penghapusan file.
+
+### Screenshot pengerjaan no 1E
+![image](soal1/ss_1e.jpg)
 
 ### No 1f
 
@@ -752,6 +767,9 @@ void see_books(int fd){
 ```
 
 Pada kepingan kode diatas, server akan memfetch per line isi **files.tsv**. Lalu, untuk setiap row, newline akan dihilangkan agar token tidak ada yang mengandung newline ("\n"). Setelah itu, dilakukan strtok untuk memisahkan nama file, tahun, publisher, dan ekstensi. Server akan mengirim semua informasi tersebut dan ditampilkan pada sisi client dengan format sesuai yang telah ditentukan.
+
+### Screenshot pengerjaan no 1F
+![image](soal1/ss_1f.jpg)
 
 ### No 1g
 
@@ -856,6 +874,9 @@ void find_books(int fd){
 
 Pada kepingan kode diatas, client akan mengirimkan sebuah string untuk acuan pencarian file. Setelah itu, server akan memfetch per row dari isi **files.tsv**. Lalu, dilakukan `strtok` untuk mendapatkan token-token yang berisi informasi yang diperlukan. Selanjutnya, digunakan `strstr` yang akan mengecek apakah nama file di **files.tsv** mengandung string yang dikirim kan oleh client. Jika tidak, maka row tersebut akan dicontinue. Jika mengandung string yang dikirimkan, maka informasi yang ada akan dikirimkan kepada client untuk ditampilkan sesuai format yang ditentukan.
 
+### Screenshot pengerjaan no 1G
+![image](soal1/ss_1g.jpg)
+
 ### No 1h
 
 Untuk soal ini, program akan membuat log untuk setiap penambahan dan penghapusan file yang terdapat di server.
@@ -881,3 +902,7 @@ void make_log(char cmd[], char fileName[], char id[], char password[]){
 ```
 
 Pada kepingan kode diatas, server akan memanggil `make_log` apabila server berhasil melakukan penghapusan file dan penambahan file.
+
+### Screenshot pengerjaan no 1H
+![image](soal1/ss_1h.jpg)
+
