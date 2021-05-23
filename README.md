@@ -1150,3 +1150,24 @@ if(ext[0]=='\0'){
 ada pengecualian juga jika saat memakai fungsi `getFileExt` tidak didapatkan extensi maka dapat dipastikan bahwa file tidak mempunyai ekstensi maka file tersebut termasuk kategori `Unknown`.
 
 ### Screenshot No.3
+Eksekusi Argumen -f
+Sebelum:
+![Screenshot (283)](https://user-images.githubusercontent.com/58657135/119264613-1e5e6980-bc0e-11eb-91f4-d515d89771da.png)
+Sesudah:
+![Screenshot (284)](https://user-images.githubusercontent.com/58657135/119264626-2918fe80-bc0e-11eb-893b-41cb5d8f7f2f.png)
+Eksekusi Argumen -d
+Sebelum:
+![Screenshot (288)](https://user-images.githubusercontent.com/58657135/119264692-641b3200-bc0e-11eb-87db-d52f9773040a.png)
+Sesudah:
+![Screenshot (289)](https://user-images.githubusercontent.com/58657135/119264698-6aa9a980-bc0e-11eb-9fb6-79a1253639df.png)
+Eksekusi Argumen \*
+Sebelum:
+![Screenshot (290)](https://user-images.githubusercontent.com/58657135/119264743-8745e180-bc0e-11eb-9f0d-d1fad5facfc3.png)
+Sesudah:
+![Screenshot (291)](https://user-images.githubusercontent.com/58657135/119264749-8b71ff00-bc0e-11eb-9c06-6c96c3457d1b.png)
+
+###Kendala
+- Program masih belum bisa menjalankan secara rekursif (Dicoba selalu segment fault)
+- Saat praktikum saat passing filepath ke fungsi thread sering keliru dalam dicopy ke filepath baru
+
+
