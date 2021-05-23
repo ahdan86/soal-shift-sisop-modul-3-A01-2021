@@ -1166,7 +1166,7 @@ Sebelum:
 Sesudah:
 ![Screenshot (291)](https://user-images.githubusercontent.com/58657135/119264749-8b71ff00-bc0e-11eb-9c06-6c96c3457d1b.png)
 
-###Kendala
+### Kendala
 - Program masih belum bisa menjalankan secara rekursif (Dicoba selalu segment fault)
 - Saat praktikum saat passing filepath ke fungsi thread sering keliru dalam dicopy ke filepath baru
 
