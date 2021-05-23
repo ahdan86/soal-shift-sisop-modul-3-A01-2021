@@ -906,6 +906,276 @@ Pada kepingan kode diatas, server akan memanggil `make_log` apabila server berha
 ### Screenshot pengerjaan no 1H
 ![image](soal1/ss_1h.jpg)
 
+
+## SOAL NO 2
+Crypto (kamu) adalah teman Loba. Suatu pagi, Crypto melihat Loba yang sedang kewalahan mengerjakan tugas dari bosnya. Karena Crypto adalah orang yang sangat menyukai tantangan, dia ingin membantu Loba mengerjakan tugasnya. Detil dari tugas tersebut adalah:
+
+a. Membuat program perkalian matrix (4x3 dengan 3x6) dan menampilkan hasilnya. Matriks nantinya akan berisi angka 1-20 (tidak perlu dibuat filter angka).
+
+b. Membuat program dengan menggunakan matriks output dari program sebelumnya (program soal2a.c) (Catatan!: gunakan shared memory). Kemudian matriks tersebut akan dilakukan perhitungan dengan matrix baru (input user) sebagai berikut contoh perhitungan untuk matriks yang a	da. Perhitungannya adalah setiap cel yang berasal dari matriks A menjadi angka untuk faktorial, lalu cel dari matriks B menjadi batas maksimal faktorialnya matri(dari paling besar ke paling kecil) (Catatan!: gunakan thread untuk perhitungan di setiap cel). 
+```
+Syarat:
+If a >= b  -> a!/(a-b)!
+If b > a -> a!
+If 0 -> 0
+```
+
+c. Karena takut lag dalam pengerjaannya membantu Loba, Crypto juga membuat program (soal2c.c) untuk mengecek 5 proses teratas apa saja yang memakan resource komputernya dengan command “ps aux | sort -nrk 3,3 | head -5” (Catatan!: Harus menggunakan IPC Pipes)
+
+### no 2a
+Untuk jawaban nomor 2a saya melakukan input dari 2 matriks yang akan dikalikan dan menggunakan 3 thread, tiap thread digunakan untuk menginput matriks (2) dan melakukan perkalian lalu akan disimpan dalam shared memory
+```c
+void *inputM1(void *arg)
+{
+    printf("Matriks 1:\n");
+    int i,j,k;
+    for (i=0; i<B1; i++){
+    	for(j=0; j<K1B2; j++){
+    		scanf("%d", &M1[i][j]);
+    	}printf("\n");
+    }
+	for (i=0; i<B1; i++){
+		for(j=0; j<K1B2; j++){
+			printf("%d ",M1[i][j] );
+		}
+		printf("\n");
+	}
+	return NULL;
+}
+
+void *inputM2(void *arg)
+{
+    printf("Matriks 2:\n");
+    int i,j,k;
+    for (i=0; i<K1B2; i++){
+    	for(j=0; j<K2; j++){
+    		scanf("%d", &M2[i][j]);
+    	}printf("\n");
+    }
+	for (i=0; i<K1B2; i++){
+		for(j=0; j<K2; j++){
+			printf("%d ",M2[i][j] );
+		}
+		printf("\n");
+	}
+	return NULL;
+}
+
+void *perkalian(void *arg)
+{
+	for(int i=0;i<B1;i++)
+	{
+		for(int j=0;j<K2;j++)
+		{
+			for(int k=0;k<K1B2;k++)
+			{
+				res += M1[i][k] * M2[k][j];
+			}
+            		value[i][j] = res; 
+            		res =0;
+		}
+	}
+	return NULL;
+}
+```
+untuk thread dan memshared nya:
+```c
+pthread_t thread1, thread2, thread3;
+int main()
+{
+    //Shared Memory
+	key_t key = 1234;
+    int shmid = shmget(key, sizeof(int[10][10]), IPC_CREAT | 0666);
+    value = shmat(shmid, 0, 0);
+
+	pthread_create(&thread1, NULL, inputM1, NULL);
+	pthread_join(thread1,NULL);
+
+	pthread_create(&thread2, NULL, inputM2, NULL);
+	pthread_join(thread2,NULL);
+
+    printf("\n");
+
+	for(int i=0;i<B1;i++){
+		for(int j=0;j<K2;j++){
+			value[i][j] = 0;
+		}
+		pthread_create(&thread3, NULL, perkalian, NULL);
+		pthread_join(thread3,NULL);
+	}
+
+	printf("Hasil Perkalian: \n");
+	for(int i=0; i<B1; i++){
+		for(int j=0;j<K2;j++){
+			printf("%d ", value[i][j]);
+		}
+		printf("\n");
+	}
+}
+```
+#### Screen shoot
+![2a](https://user-images.githubusercontent.com/81211647/119265137-d80a0a00-bc0f-11eb-9425-40e291e0b0d4.png)
+
+### no 2b
+jadi, untuk nomor 2b ini kan diminta seperti soal, ngebandingin antara matriks yang udah disimpen di shared memory sama matriks baru yang baru di input. setelah dibandingin nanti fungsi finalmatriks akan ngeubah nilai matriks terakhir sesuai perbandingan yang diminta soal nomor 2b
+
+untuk mengecek apakah nilai dari kedua matriks memenuhi salah satu kriteria soal:
+```c
+typedef long long ll;
+int newvalue[4][6],beda,zero;
+
+ll factorial(int n) {
+    if (n == 0) return 1;
+    return n*factorial(n-1);
+}
+
+ll factorial2(int n){
+	if (n == beda) return 1;
+        return n*factorial2(n-1);
+}
+
+void *finalmatriks(void* argv){
+	ll n = *(ll*)argv;
+	if(zero){
+		printf("0 ");
+	}
+	else if(beda<1){
+		printf("%lld ", factorial(n));
+	} 
+	else printf("%lld ", factorial2(n));
+}
+```
+Pada main program dilakukan input matriks baru dan pemanggilan matriks lama dari soal 2a menggunakan shared memory
+```c
+void main()
+{
+    //Shared Memory
+    key_t key = 1234;
+    int (*value)[10];
+    int shmid = shmget(key, sizeof(int), IPC_CREAT | 0666);
+    value = shmat(shmid, 0, 0);
+
+	printf("Hasil Perkalian antara matriks A dan B adalah: \n");
+	for(int i=0;i<B;i++){
+		for(int j=0;j<K;j++){
+			printf("%d ", value[i][j]);
+		}
+	printf("\n");
+	}
+
+	printf("Input matriks baru: \n");
+    for(int x=0;x<B;x++){
+		for(int y=0;y<K;y++){
+			scanf("%d", &newvalue[x][y]);
+		}
+	}
+
+	printf("\n");
+	pthread_t thread_id[B*K];
+    int cnt=0;
+    for(int i = 0; i < B; i++){
+        for(int j = 0; j < K; j++){
+        	zero=0;
+            ll *val = malloc(sizeof(ll[4][6]));
+
+            *val = value[i][j];
+            beda = value[i][j] - newvalue[i][j];
+
+            if(value[i][j]==0 || newvalue[i][j]==0) zero=1;
+
+            pthread_create(&thread_id[cnt], NULL, &finalmatriks, val);
+            sleep(1);
+            cnt++;
+        }
+        printf("\n");
+    }
+    for (int i = 0; i<cnt; i++){
+		pthread_join(thread_id[i], NULL);
+	}
+}
+```
+#### Screenshot
+![image](https://user-images.githubusercontent.com/81211647/119265162-ed7f3400-bc0f-11eb-8685-336edf757a80.png)
+
+### no 2c
+Untuk soal ini menggunakan IPC PIPES untuk mengeksekusi ps aux | sort -nrk 3,3 | head -5
+untuk mengerjakannya menggunakan 2 PIPES yang dibantu dengan fork
+```c
+int main() 
+{ 
+	int pipe1[2], pipe2[2]; 
+	pid_t p1,p2;
+	if (pipe(pipe1)==-1)
+	{ 
+		fprintf(stderr, "Pipe Gagal" ); 
+		return 1; 
+	} 
+	if (pipe(pipe2)==-1)
+	{ 
+		fprintf(stderr, "Pipe Gagal" ); 
+		return 1; 
+	} 
+	p1=fork();
+	if (p1< 0) 
+	{ 
+		fprintf(stderr, "Fork Gagal" );
+		return 1; 
+	}  
+
+    //parent p1
+    else if (p1 > 0) {
+        p2 = fork();
+        if (p2< 0) 
+	    { 
+		    fprintf(stderr, "Fork Gagal" );
+		    return 1; 
+	    }  
+
+        else if(p2 > 0){//parent p2
+            close(pipe1[0]);
+            close(pipe1[1]);
+
+            dup2(pipe2[0], 0);
+        
+            close(pipe2[0]);
+            close(pipe2[1]);
+
+            char *arg1[] = {"head", "-5", NULL};
+            execvp("/usr/bin/head", arg1);
+            exit(0);
+        }
+
+        else{ //child p2
+            //Read isi dari Pipe1
+            dup2(pipe1[0], 0); 
+            //Write ke Pipe 2
+            dup2(pipe2[1], 1);
+
+            close(pipe1[0]);
+            close(pipe1[1]);
+            close(pipe2[0]);
+            close(pipe2[1]);
+
+            char *arg2[] = {"sort", "-nrk", "3.3",NULL};
+            execvp("/bin/sort", arg2);
+        }
+    }
+    //child p1
+	else{ //p1 == 0
+    	dup2(pipe1[1], 1);
+
+		close(pipe1[0]);
+        close(pipe1[1]);
+
+        char *arg2[] = {"ps", "aux",NULL};
+        execvp("/bin/ps", arg2);
+	} 
+} 
+```
+#### Screenshot
+![image](https://user-images.githubusercontent.com/81211647/119265227-1b647880-bc10-11eb-9876-273040dde413.png)
+
+
 ## Soal No 3
 Seorang mahasiswa bernama Alex sedang mengalami masa gabut. Di saat masa gabutnya, ia memikirkan untuk merapikan sejumlah file yang ada di laptopnya. Karena jumlah filenya terlalu banyak, Alex meminta saran ke Ayub. Ayub menyarankan untuk membuat sebuah program C agar file-file dapat dikategorikan. Program ini akan memindahkan file sesuai ekstensinya ke dalam folder sesuai ekstensinya yang folder hasilnya terdapat di working directory ketika program kategori tersebut dijalankan.
 
