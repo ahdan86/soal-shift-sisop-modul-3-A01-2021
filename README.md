@@ -906,3 +906,247 @@ Pada kepingan kode diatas, server akan memanggil `make_log` apabila server berha
 ### Screenshot pengerjaan no 1H
 ![image](soal1/ss_1h.jpg)
 
+## Soal No 3
+Seorang mahasiswa bernama Alex sedang mengalami masa gabut. Di saat masa gabutnya, ia memikirkan untuk merapikan sejumlah file yang ada di laptopnya. Karena jumlah filenya terlalu banyak, Alex meminta saran ke Ayub. Ayub menyarankan untuk membuat sebuah program C agar file-file dapat dikategorikan. Program ini akan memindahkan file sesuai ekstensinya ke dalam folder sesuai ekstensinya yang folder hasilnya terdapat di working directory ketika program kategori tersebut dijalankan.
+
+Contoh apabila program dijalankan:
+
+```
+# Program soal3 terletak di /home/izone/soal3
+$ ./soal3 -f path/to/file1.jpg path/to/file2.c path/to/file3.zip
+#Hasilnya adalah sebagai berikut
+/home/izone
+    |-jpg
+        |--file1.jpg
+    |-c
+        |--file2.c
+    |-zip
+        |--file3.zip
+```
+a. Program menerima opsi -f seperti contoh di atas, jadi pengguna bisa menambahkan argumen file yang bisa dikategorikan sebanyak yang diinginkan oleh pengguna. 
+Output yang dikeluarkan adalah seperti ini :
+```
+File 1 : Berhasil Dikategorikan (jika berhasil)
+File 2 : Sad, gagal :( (jika gagal)
+File 3 : Berhasil Dikategorikan
+```
+b. Program juga dapat menerima opsi -d untuk melakukan pengkategorian pada suatu directory. Namun pada opsi -d ini, user hanya bisa memasukkan input 1 directory saja, tidak seperti file yang bebas menginput file sebanyak mungkin. Contohnya adalah seperti ini:
+```
+$ ./soal3 -d /path/to/directory/
+```
+Perintah di atas akan mengkategorikan file di /path/to/directory, lalu hasilnya akan disimpan di working directory dimana program C tersebut berjalan (hasil kategori filenya bukan di /path/to/directory).
+Output yang dikeluarkan adalah seperti ini :
+```
+Jika berhasil, print “Direktori sukses disimpan!”
+Jika gagal, print “Yah, gagal disimpan :(“
+```
+c. Selain menerima opsi-opsi di atas, program ini menerima opsi *, contohnya ada di bawah ini:
+```
+$ ./soal3 \*
+```
+Opsi ini akan mengkategorikan seluruh file yang ada di working directory ketika menjalankan program C tersebut.
+
+d. Semua file harus berada di dalam folder, jika terdapat file yang tidak memiliki ekstensi, file disimpan dalam folder “Unknown”. Jika file hidden, masuk folder “Hidden”.
+
+e. Setiap 1 file yang dikategorikan dioperasikan oleh 1 thread agar bisa berjalan secara paralel sehingga proses kategori bisa berjalan lebih cepat.
+
+##Jawaban No.3
+a. Pertama-tama, program akan mendapatkan argumen dari terminal dengan kode:
+`int main(int argc, char *argv[])` argumen nantinya disimpan di argv.
+Kode Program untuk perintah -f adalah sebagai berikut:
+```c
+if(!strcmp(argv[1],"-f")){
+    pthread_t tid[1000];
+    for(int i = 2; i<argc ;i++){
+        int error = pthread_create(&tid[i], NULL, makeMoveDir, (void *)argv[i]);
+        if(error != 0){
+            printf("\nCant Create Thread! : [%s]\n",strerror(error));
+        }
+    }
+
+    for(int j=2; j<argc; j++){
+		pthread_join(tid[j], NULL);
+    }
+}
+```
+Jadi thread akan dibuat menyesuaikan dengan jumlah argumen. Tiap argument yang berisi directory akan dipass ke fungsi thread. lalu tiap thread akan dijoin agar tidak saling bertabrakan.
+
+Fungsi Thread + fungsi get extension:
+```c
+const char *get_filename(const char *filename){
+    const char *dot = strrchr(filename, '/');
+    if(!dot || dot == filename) return "";
+    return dot + 1;
+}
+
+const char *get_filename_ext(const char *filename)
+{
+    const char *dot2 = strchr(filename, '.');
+    if(!dot2 || dot2 == filename) return "";
+    return dot2 + 1;
+}
+
+bool trig = false , trig2=false;
+char folder[100];
+void *makeMoveDir (void *arg)
+{
+    char root[100] = "/home/ahdan/Modul3";
+    
+    char folderPath[100]; 
+    strcat(folderPath,root);
+    strcat(folderPath,"/");
+
+    char filePathOld[100]; 
+    if(!trig)
+        strcpy(filePathOld,arg);
+    else
+    {
+        strcpy(filePathOld,folder);
+        strcat(filePathOld,arg);
+    }
+    
+    char ext[10];
+    strcpy(ext,get_filename_ext((char *)arg));
+    if(ext[0]=='\0'){
+        if(strchr(arg,'.')!=NULL){
+            strcat(folderPath,"Hidden");
+        }
+        else strcat(folderPath,"Unknown");
+    }
+    else{
+        for(int i=0;i<strlen(ext);i++){
+            ext[i] = tolower(ext[i]);
+        }
+        // printf("%s",ext);
+        strcat(folderPath, ext);
+    }   
+
+    char filePathNew[100]; 
+    strcpy(filePathNew,folderPath);
+    strcat(filePathNew,"/");
+    if(!trig)
+        strcat(filePathNew,get_filename((char *)arg));
+    else
+        strcat(filePathNew,arg);
+   
+    DIR* dir = opendir(folderPath);
+    if(!dir){
+        mkdir(folderPath,0777);
+    }
+    int stat = rename(filePathOld,filePathNew);
+    if(stat==0&&trig==false) printf("%s : Berhasil Dikategorikan\n",get_filename((char *)arg));
+    else if(stat==-1&&trig==false) printf("%s : Sad, gagal :(\n",get_filename((char *)arg));
+    if(stat==-1&&trig==true) trig2=true;
+    // printf("%s %s %s %d",filePathOld,filePathNew,arg,stat);
+}
+```
+fungsi `getFileName` berfungsi untuk mendapatkan nama file dari suatu string yang berisi path file Sedangkan fungsi `getFileExt` berfungsi untuk mendapatkan string extension dari string yang berisi path file.
+nantinya file yang sudah diambil extensi nya akan dibuatkan folder sesuai nama ekstensinya :
+```c
+char filePathNew[100]; 
+    strcpy(filePathNew,folderPath);
+    strcat(filePathNew,"/");
+    if(!trig)
+        strcat(filePathNew,get_filename((char *)arg));
+    else
+        strcat(filePathNew,arg);
+   
+    DIR* dir = opendir(folderPath);
+    if(!dir){
+        mkdir(folderPath,0777);
+    }
+```
+lalu setelah itu path lama dari file tersebut akan digantikan dengan path baru (file akan dipindahkan) dengan fungsi `rename()`
+
+b.  Jika program dieksekusi dengan argumen -d pertama dilakukan kode blok berikut:
+```c
+trig = true;
+pthread_t tid2[1000];
+
+DIR *d;
+struct dirent *dir;
+if(!strcmp(argv[1],"-d"))
+{
+    char directory[100];
+    strcpy(directory, argv[2]);
+
+    strcpy(folder,directory);
+    strcat(folder,"/");
+    d = opendir(argv[2]);
+}
+```
+Kode blok diatas berfungsi untuk membuka directory yang dipilih lalu mnegiterasi setiap file yang ada di directory tersebut. Berikut kode blok untuk mengiterasi tiap file yang terdapat di dalam directory:
+```c
+while ((dir = readdir(d)) && d!= NULL)
+{
+    if(!strcmp(dir->d_name,"Soal3.o")||!strcmp(dir->d_name,"Soal3.c")||!strcmp(dir->d_name,".")||!strcmp(dir->d_name,"..")||dir->d_type==DT_DIR)
+    {
+        continue;
+    }
+
+    int error = pthread_create(&tid2[i], NULL, makeMoveDir, dir->d_name);
+    if(error != 0){
+        printf("\nCant Create Thread! : [%s]\n",strerror(error));
+    }
+
+    i++;
+}
+```
+lalu akan dieksekusi fungsi thread yang sudah tertera diatas. Namun karena argumen -d memindahkan file dari directory lain (bukan langsung eksplisit menyebutkan filepath nya) maka jika dijalankan -d akan menjalankan:
+```c
+char root[100] = "/home/ahdan/Modul3";
+    
+char folderPath[100]; 
+strcat(folderPath,root);
+strcat(folderPath,"/");
+
+char filePathOld[100]; 
+if(!trig)
+    strcpy(filePathOld,arg);
+else
+{
+    strcpy(filePathOld,folder);
+    strcat(filePathOld,arg);
+}
+```
+Kode blok diatas jika menjalankan argumen -d akan filename (karena yang dipassing ke fungsi thread adalah nama dari file beserta extensinya bukan filepathnya) maka akan diconcat ke filepath directory yang lama dulu (filepath lama disimpan di global variable) lalu baru nanti didapatkan  extensi beserta filenamenya (Proses selanjutnya sama seperti 1a). Nantinya filepath baru didapatkan dengan:
+```c
+    char filePathNew[100]; 
+    strcpy(filePathNew,folderPath);
+    strcat(filePathNew,"/");
+    if(!trig)
+        strcat(filePathNew,get_filename((char *)arg));
+    else
+        strcat(filePathNew,arg);
+   
+    DIR* dir = opendir(folderPath);
+    if(!dir){
+        mkdir(folderPath,0777);
+    }
+    int stat = rename(filePathOld,filePathNew);
+```
+program akan masuk kondisi `else`.
+
+c. Prinsipnya sama seperti no 3b perbedaan hanya saat awal saja. Saat eksekusi argumen `\*` akan masuk blok kode  berikut:
+```c
+else if(argv[1][0]=='*')
+{
+    d = opendir("/home/ahdan/Modul3");
+}
+```
+lalu untuk langkah-langkah selanjutnya sama seperti nomor b.
+
+d. Jika terdapat file yang `Hidden` maka nama file tersebut pasti diawali dengan simbol `.` didepannya. Oleh karena itu untuk handle case ini digunakan pengecualin di fungsi thread:
+```c
+char ext[10];
+strcpy(ext,get_filename_ext((char *)arg));
+if(ext[0]=='\0'){
+    if(strchr(arg,'.')!=NULL){
+        strcat(folderPath,"Hidden");
+    }
+    else strcat(folderPath,"Unknown");
+}
+```
+ada pengecualian juga jika saat memakai fungsi `getFileExt` tidak didapatkan extensi maka dapat dipastikan bahwa file tidak mempunyai ekstensi maka file tersebut termasuk kategori `Unknown`.
+
+### Screenshot No.3
