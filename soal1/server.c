@@ -357,10 +357,7 @@ void find_books(int send_clt, int rcv_clt){
 			*newline = 0;
 		
 		filePath = strtok(line, tab);
-        if(strstr(filePath, bookFind) == 0)
-            continue;
-
-        found = 1;           
+                  
 		publisher = strtok(NULL, tab);
 		tahun = strtok(NULL, tab);
 
@@ -369,7 +366,11 @@ void find_books(int send_clt, int rcv_clt){
 		strrev(tempName);
 		nameFile = strtok(tempName, ".");
 		ekstensi = strtok(NULL, ".");
+		if(strstr(filePath, bookFind) == 0)
+           		 continue;
 
+       		 found = 1; 
+	    
 		printf("Nama: %s\n", nameFile);
 		printf("Publisher: %s\n", publisher);
 		printf("Tahun publishing: %s\n", tahun);
